@@ -1,65 +1,38 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 const https = require("https");
-const request = require("request");
+const bodyParser = require("body-parser");
 
 const app = express();
-app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended:true}));
 
 app.get("/", function(req, res) {
-  res.sendFile(__dirname+"/signup.html");
-  console.log("Worked");
+  res.sendFile(__dirname + "/index.html");
 });
 
 app.post("/", function(req, res) {
-  const firstName = req.body.firstName;
-  const lastName = req.body.lastName;
-  const email = req.body.email;
-  const apiKey = "842d5bc4bbfd18930d958b15b887dd5a-us18";
-  const uniqueId = "051bb8c06b";
+  const cityName = req.body.cityName;
+  const apiKey = "ba91c1f6f6e586319c7db87845f7c3e3";
+  const unit = "metric";
 
-  const data = {
-    members: [
-      {
-        email_address: email,
-        status: "subscribed",
-        merge_fields: {
-          "FNAME": firstName,
-          "LNAME": lastName
-        }
-      }
-    ]
-  };
-
-  const jsonData = JSON.stringify(data);
-  const url = `https://${"us18"}.api.mailchimp.com/3.0/lists/${uniqueId}`;
-  const options = {
-    method:"POST",
-    auth:`sa464410:${apiKey}`
-  };
-
-  const request = https.request(url, options, function(response) {
-
-    if(response.statusCode===200)
-      res.sendFile(__dirname+"/success.html");
-    else
-      res.sendFile(__dirname+"/failure.html");
+  const url = `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${apiKey}&units=${unit}`;
+  https.get(url, function(response) {
+    console.log(response.statusCode);
 
     response.on("data", function(data) {
-      console.log(JSON.parse(data));
+      const json_data = JSON.parse(data);
+      const temp = json_data.main.temp;
+      const description = json_data.weather[0].description;
+      const icon = json_data.weather[0].icon;
+      const iconUrl = `http://openweathermap.org/img/wn/${icon}@2x.png`;
+
+      res.write(`<h1>The temperature in ${cityName} is ${temp} degress celsius.</h1>`);
+      res.write(`<h4>The weather description in ${cityName} is ${description}.</h4>`);
+      res.write(`<img src=${iconUrl} alt=icon></img>`);
+      res.send();
     });
   });
-  request.write(jsonData);
-  request.end();
-
 });
 
-app.post("/failure", function(req,res) {
-  res.redirect("/");
-});
-
-
-app.listen(process.env.POST || 3000, function() {
-  console.log("Server is running on port 3000");
+app.listen(3000, function() {
+  console.log("Port is currently running on 3000.");
 });
